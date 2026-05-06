@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RAG Based Chat Bot</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#131314;
+      --panel:#1E1F20;
+      --panel-2:#282A2C;
+      --border:#444746;
+      --text:#E3E3E3;
+      --muted:#8E918F;
+      --accent:#A8C7FA;
+      --accent-2:#D3E3FD;
+      --danger:#F28B82;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+    button,input,textarea{font:inherit}
+    .app{height:100vh;display:flex}
+    .sidebar{width:320px;min-width:320px;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}
+    .brand{padding:18px 20px;font-weight:700;font-size:20px;display:flex;align-items:center;gap:10px}
+    .brand i{font-size:20px}
+    .section{padding:10px 14px 0}
+    .section-title{display:flex;justify-content:space-between;align-items:center;padding:0 4px 12px;font-weight:600;color:#f3f4f6}
+    .upload-box{border:1px dashed #555;border-radius:18px;padding:22px;min-height:168px;display:flex;align-items:center;justify-content:center;text-align:center;background:rgba(255,255,255,.02);cursor:pointer;transition:.2s}
+    .upload-box:hover{border-color:var(--accent);background:rgba(168,199,250,.07)}
+    .upload-inner{display:flex;flex-direction:column;align-items:center;gap:10px}
+    .upload-inner .plus{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.03);font-size:30px;color:#dbeafe}
+    .upload-title{font-weight:600}
+    .upload-sub{font-size:12px;color:#9aa0a6}
+    .file-list{display:none;flex-direction:column;gap:8px;margin-top:10px;max-height:170px;overflow:auto}
+    .file-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04)}
+    .file-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+    .file-del{cursor:pointer;color:#fca5a5}
+    .clear-btn{display:none;margin-top:10px;width:100%;border:none;border-radius:12px;padding:10px 12px;background:rgba(242,139,130,.10);color:#fca5a5;cursor:pointer}
+    .clear-btn:hover{background:rgba(242,139,130,.18)}
+    .memory-box{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:16px;padding:12px}
+    .memory-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+    .memory-head h3{margin:0;font-size:15px}
+    .refresh-link{background:none;border:none;color:#9fb8e8;cursor:pointer;padding:0}
+    .memory-input{width:100%;min-height:90px;resize:none;border-radius:12px;border:1px solid var(--border);background:transparent;color:var(--text);padding:12px;outline:none}
+    .memory-row{display:flex;gap:10px;margin-top:10px}
+    .memory-row button{flex:1;border:none;border-radius:12px;padding:10px 12px;cursor:pointer}
+    .memory-save{background:rgba(255,255,255,.05);color:var(--text);border:1px solid var(--border)}
+    .memory-save:hover{background:rgba(255,255,255,.08)}
+    .memory-clear{background:rgba(242,139,130,.10);color:#fca5a5;border:1px solid rgba(242,139,130,.20)}
+    .memory-clear:hover{background:rgba(242,139,130,.16)}
+    .memory-list{margin-top:10px;display:flex;flex-direction:column;gap:8px;max-height:180px;overflow:auto}
+    .memory-item{display:flex;gap:8px;justify-content:space-between;align-items:flex-start;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.04)}
+    .memory-text{font-size:12px;line-height:1.5;white-space:pre-wrap;flex:1}
+    .memory-actions{display:flex;gap:8px;flex-shrink:0}
+    .memory-actions button{border:none;background:none;color:#9fb8e8;cursor:pointer;padding:0;font-size:12px}
+    .smart-toggle{margin-top:18px;padding:14px 14px 8px;border-top:1px solid var(--border)}
+    .smart-head{display:flex;justify-content:space-between;align-items:center;cursor:pointer;color:#9fb8e8;font-weight:600}
+    .smart-head i{transition:.2s}
+    .smart-tools{margin-top:12px;display:flex;flex-direction:column;gap:12px}
+    .tool-btn{width:100%;display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px solid transparent;background:transparent;color:#d1d5db;cursor:pointer;text-align:left}
+    .tool-btn:hover{background:rgba(255,255,255,.05)}
+    .tool-btn.active{background:rgba(168,199,250,.12);border-color:rgba(168,199,250,.25);color:var(--accent)}
+    .suggestions-box{border:1px solid var(--border);border-radius:16px;background:rgba(255,255,255,.02);padding:12px}
+    .suggestion-list{display:flex;flex-wrap:wrap;gap:8px}
+    .suggestion-chip{border:1px solid var(--border);background:transparent;color:#d1d5db;border-radius:999px;padding:8px 12px;cursor:pointer}
+    .suggestion-chip:hover{background:rgba(255,255,255,.06)}
+    .main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative;background:#131314}
+    .header{height:64px;display:flex;align-items:center;padding:0 24px;border-bottom:1px solid transparent}
+    .header h2{margin:0;font-size:18px}
+    .chat-box{flex:1;overflow:auto;padding:16px 18px 170px;max-width:1100px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+    .message{display:flex;gap:14px;align-items:flex-start}
+    .message.user{justify-content:flex-end}
+    .message.user .avatar{display:none}
+    .message.user .bubble{max-width:75%;background:var(--panel);border:1px solid rgba(255,255,255,.05);border-radius:20px 20px 6px 20px;padding:14px 16px;white-space:pre-wrap}
+    .message.bot .avatar,.message.system .avatar{width:44px;height:44px;border-radius:50%;background:#cfd2ff;display:flex;align-items:center;justify-content:center;color:#131314;flex-shrink:0}
+    .message.bot .bubble,.message.system .bubble{white-space:pre-wrap;line-height:1.65;padding-top:6px}
+    .composer-wrap{position:absolute;left:0;right:0;bottom:0;padding:0 18px 18px}
+    .composer-inner{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:12px}
+    .summary-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .mode-btn{border:1px solid var(--border);background:transparent;color:#d1d5db;border-radius:999px;padding:10px 18px;cursor:pointer}
+    .mode-btn:hover{background:rgba(255,255,255,.05)}
+    .mode-btn.active{background:rgba(168,199,250,.12);border-color:rgba(168,199,250,.35);color:var(--accent)}
+    .page-picker{display:flex;align-items:center;gap:8px}
+    .page-picker input{width:72px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:10px;padding:10px 12px;outline:none;text-align:center}
+    .tool-close{width:34px;height:34px;border-radius:50%;border:1px solid var(--border);background:var(--panel);color:#c4c7c5;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;transition:.2s;line-height:1}
+    .tool-close:hover{background:#ef4444;color:#fff;border-color:#ef4444;transform:scale(1.05)}
+    .composer{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:28px;background:var(--panel-2);border:1px solid rgba(255,255,255,.02)}
+    .composer input{flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:15px;padding:10px 10px}
+    .send-btn{width:46px;height:46px;border-radius:50%;border:none;background:transparent;color:#c7c9ca;cursor:pointer;font-size:20px}
+    .send-btn:hover{background:var(--accent);color:#131314}
+    .quiz-modal{position:absolute;top:8%;left:50%;transform:translateX(-50%);width:min(850px,92vw);max-height:78vh;overflow:auto;background:var(--panel);border:1px solid var(--border);border-radius:20px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.45);z-index:20}
+    .quiz-head{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:16px}
+    .quiz-title{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700}
+    .quiz-close{border:none;background:none;color:#c4c7c5;font-size:24px;cursor:pointer;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .quiz-close:hover{background:rgba(255,255,255,.06);color:#fff}
+    .quiz-content{white-space:pre-wrap;line-height:1.7}
+    .hidden{display:none !important}
+    .muted{color:var(--muted)}
+    @media (max-width: 900px){
+      .sidebar{display:none}
+      .chat-box{padding-left:12px;padding-right:12px}
+      .header{padding:0 14px}
+      .composer-wrap{padding:0 12px 12px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand"><i class="fa-solid fa-layer-group"></i>RAG Chat Bot</div>
+
+      <div class="section">
+        <div class="section-title"><span>Sources</span></div>
+        <div id="drop-zone" class="upload-box" onclick="document.getElementById('file-input').click()">
+          <input id="file-input" type="file" multiple hidden accept=".pdf,.doc,.docx,.txt,.md,.csv,.json,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.webp,.bmp,.gif">
+          <div class="upload-inner">
+            <div class="plus">+</div>
+            <div class="upload-title">Add sources</div>
+            <div class="upload-sub">PDFs, Docs, Images</div>
+          </div>
+        </div>
+
+        <div id="file-list" class="file-list"></div>
+        <button id="clear-docs" class="clear-btn"><i class="fa-solid fa-trash"></i> Clear All</button>
+      </div>
+
+      <div class="section" style="margin-top:10px;">
+        <div class="memory-head">
+          <h3>Memory</h3>
+          <button id="refresh-memory-btn" class="refresh-link">Refresh</button>
+        </div>
+        <div class="memory-box">
+          <textarea id="memory-input" class="memory-input" placeholder="Add something I should remember..."></textarea>
+          <div class="memory-row">
+            <button id="save-memory-btn" class="memory-save">Save / Update</button>
+            <button id="clear-memory-btn" class="memory-clear">Clear</button>
+          </div>
+          <div id="memory-list" class="memory-list"></div>
+        </div>
+      </div>
+
+      <div class="smart-toggle">
+        <div id="tools-toggle" class="smart-head">
+          <span><i class="fa-solid fa-wand-magic-sparkles"></i> Smart Tools</span>
+          <i id="tools-arrow" class="fa-solid fa-angle-down"></i>
+        </div>
+
+        <div id="smart-tools" class="smart-tools">
+          <button id="generate-suggestions-btn" class="tool-btn"><i class="fa-solid fa-lightbulb"></i> Generate Questions</button>
+          <button id="generate-quiz-btn" class="tool-btn"><i class="fa-solid fa-list-check"></i> Create Quiz</button>
+          <button id="export-pdf-btn" class="tool-btn"><i class="fa-solid fa-file-pdf"></i> Export to PDF</button>
+          <button id="save-notes-btn" class="tool-btn"><i class="fa-solid fa-note-sticky"></i> Save Notes</button>
+
+          <div class="suggestions-box">
+            <div class="muted" style="font-size:11px;letter-spacing:.12em;font-weight:700;margin-bottom:10px;">SUGGESTED</div>
+            <div id="suggestions-list" class="suggestion-list">
+              <button class="suggestion-chip">What is the objective?</button>
+              <button class="suggestion-chip">What is methodology?</button>
+              <button class="suggestion-chip">Conclusion details?</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="header"><h2>RAG Based Chat Bot</h2></div>
+
+      <div id="chat-box" class="chat-box">
+        <div class="message bot">
+          <div class="avatar"><i class="fa-solid fa-robot"></i></div>
+          <div class="bubble">Hello! Upload your documents via the Sources panel and I will synthesize information instantly.</div>
+        </div>
+      </div>
+
+      <div class="composer-wrap">
+        <div class="composer-inner">
+          <div id="summary-buttons" class="summary-row">
+            <button class="mode-btn" data-mode="full">Summarize</button>
+            <button class="mode-btn" data-mode="page">Page Info</button>
+            <button class="mode-btn" data-mode="keypoints">Key Points</button>
+            <div id="page-picker" class="page-picker hidden">
+              <input id="page-number" type="number" min="1" placeholder="Page">
+            </div>
+            <button id="tool-close" class="tool-close hidden" title="Close tool mode">✕</button>
+          </div>
+
+          <div class="composer">
+            <input id="question-input" type="text" placeholder="Ask a question about your documents...">
+            <button id="send-btn" class="send-btn"><i class="fa-solid fa-arrow-up"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div id="quiz-output" class="quiz-modal hidden">
+        <div class="quiz-head">
+          <div class="quiz-title"><i class="fa-solid fa-list-check" style="color:var(--accent)"></i> Generated Quiz</div>
+          <button id="close-quiz" class="quiz-close">×</button>
+        </div>
+        <div id="quiz-content" class="quiz-content">Generating quiz...</div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>

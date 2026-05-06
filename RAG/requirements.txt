@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+python-multipart
+ctransformers
+pypdf
+python-docx
+pandas
+openpyxl
+xlrd
+python-pptx
+pillow
+pytesseract
+beautifulsoup4
