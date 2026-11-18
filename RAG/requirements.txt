@@ -12,3 +12,9 @@ pillow
 pytesseract
 beautifulsoup4
 faiss-cpu
+numpy
+torch
+sentence-transformers
+transformers
+streamlit
+requests
