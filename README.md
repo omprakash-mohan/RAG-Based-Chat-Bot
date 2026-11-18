@@ -224,11 +224,7 @@ Answer
 
 ---
 
-# 👨‍💻 Developed By
 
-Vaithyanadhan S G
-
----
 
 # ⭐ Future Enhancements
 
