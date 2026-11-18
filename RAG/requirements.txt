@@ -11,3 +11,4 @@ python-pptx
 pillow
 pytesseract
 beautifulsoup4
+faiss-cpu
